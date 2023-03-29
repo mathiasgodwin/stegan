@@ -152,13 +152,13 @@ class MessageInputPage extends StatelessWidget {
                             });
                       }
                     },
-                    child: const Text('Embed message'),
+                    child: const Text('Encrypt'),
                   );
                 }),
-                _SaveImageButton(
-                  imageFile: File(image.path),
-                  message: _messageController.text,
-                )
+                // _SaveImageButton(
+                //   imageFile: File(image.path),
+                //   message: _messageController.text,
+                // )
               ],
             ),
           ),
@@ -177,54 +177,6 @@ class MessageInputPage extends StatelessWidget {
     );
     await GallerySaver.saveImage(file!.path, albumName: 'Encrypted');
   }
-
-  // Future<void> usingFlutterStegan() async {
-  //   //Encode image with an encryption key
-  //   // getting a directory path for saving
-  //   final Directory path = await getApplicationDocumentsDirectory();
-  //   // File temp = file as File;
-  //   String date = DateTime.now().toIso8601String();
-  //   final file = File(image.path);
-  //   EncodeRequest request = EncodeRequest(
-  //       await file.readAsBytes(), _messageController.text,
-  //       key: _secretKeyController.text.trim());
-
-  //   Uint8List response = await encodeMessageIntoImageAsync(request);
-  //   final tempDir = await getTemporaryDirectory();
-
-  //   File newFile = await File(
-  //           '${tempDir.path}/fsteg_${DateTime.now().toIso8601String()}.png')
-  //       .create();
-  //   print({'Before Wite Size': newFile.size});
-  //   await newFile.writeAsBytes(response);
-
-  //   print({'New Size': newFile.size});
-
-  //   print(newFile.absolute);
-  //   print(newFile.runtimeType);
-  //   print(newFile.parent);
-
-  //   await GallerySaver.saveImage(newFile.path, albumName: 'Encrypted');
-  // }
-
-//   Future<void> usingStegan() async {
-//     String date = DateTime.now().toIso8601String();
-//     final tempDir = await getTemporaryDirectory();
-
-//     final Directory path = await getApplicationDocumentsDirectory();
-//     // File temp = file as File;
-//     File imageToFile = File(image.path);
-//     print(imageToFile.path);
-//     File? file = await Steganograph.encode(
-//       image: imageToFile,
-//       message: _messageController.text,
-//       encryptionKey: _secretKeyController.text.trim(),
-//       outputFilePath:
-//           '${tempDir.path}/steg_${DateTime.now().minute} ${DateTime.now().hour}.png',
-//     );
-//     print(file);
-//     await GallerySaver.saveImage(file!.path, albumName: 'Encrypted');
-//   }
 }
 
 class _ImageWidget extends StatelessWidget {
@@ -284,7 +236,7 @@ class _SaveImageButton extends StatelessWidget {
               file.writeAsBytes(newImage);
               GallerySaver.saveImage(file.path);
             },
-      child: const Text('Embed message'),
+      child: const Text('Encrypt'),
     );
   }
 }

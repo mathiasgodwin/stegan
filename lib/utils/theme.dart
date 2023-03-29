@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 final lightTheme = ThemeData(
         colorScheme: flexSchemeLight,
+        useMaterial3: true,
         inputDecorationTheme: InputDecorationTheme())
     .copyWith();
 final darkTheme = ThemeData(
   colorScheme: flexSchemeDark,
+  useMaterial3: true,
 );
 
 const ColorScheme flexSchemeLight = ColorScheme(

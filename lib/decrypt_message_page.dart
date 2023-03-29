@@ -7,8 +7,6 @@ import 'package:flutter/material.dart';
 // import 'package:flutter_steganography/requests/requests.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:stegan/encryption_success_page.dart';
-import 'package:stegan/message_input_page.dart';
 import 'package:stegify/stegify.dart';
 
 /// TODO: Finish the docs
@@ -42,6 +40,11 @@ class DecryptMessagePage extends StatelessWidget {
                   image: image,
                 ),
                 const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Text('Enter secret key'),
+                  ],
+                ),
                 TextFormField(
                   controller: _secretKeyController,
                   validator: (value) {
@@ -76,8 +79,11 @@ class DecryptMessagePage extends StatelessWidget {
                                 builder: (context) {
                                   return AlertDialog(
                                     title: Text('You secret message'),
-                                    content: Container(
-                                      child: Text(embeddedMessage),
+                                    content: SingleChildScrollView(
+                                      physics: ScrollPhysics(),
+                                      child: Container(
+                                        child: Text(embeddedMessage),
+                                      ),
                                     ),
                                   );
                                 });
@@ -104,36 +110,6 @@ class DecryptMessagePage extends StatelessWidget {
     return message;
   }
 
-  // Future<String?> usingFlutterStegan() async {
-  //   print(image.path);
-
-  //   final imageUint8File = await image.readAsBytes();
-  //   print(imageUint8File);
-  //   DecodeRequest request =
-  //       DecodeRequest(imageUint8File, key: _secretKeyController.text.trim());
-  //   String response = await decodeMessageFromImageAsync(request);
-  //   String? embeddedMessage = response;
-  //   print(embeddedMessage);
-
-  //   final tempDir = await getTemporaryDirectory();
-  //   File newFile = await File(
-  //           '${tempDir.path}/image_${DateTime.now().toIso8601String()}.png')
-  //       .create();
-  //   print({'Before Wite Size': newFile.size});
-  //   // await newFile.writeAsBytes(response);
-
-  //   print({'New Size': newFile.size});
-  //   return embeddedMessage;
-  // }
-
-//   Future<String?> usingStegan() async {
-//     String? embeddedMessage = await Steganograph.decode(
-//       image: File(image.path),
-//       encryptionKey: _secretKeyController.text.trim(),
-//     );
-
-//     return embeddedMessage;
-//   }
 }
 
 class _ImageWidget extends StatelessWidget {
@@ -144,7 +120,10 @@ class _ImageWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: Image.file(File(image.path)),
+      child: Image.file(
+        File(image.path),
+        height: 300,
+      ),
     );
   }
 }

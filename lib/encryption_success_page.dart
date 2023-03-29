@@ -24,11 +24,17 @@ class EncryptionSuccessPage extends StatelessWidget {
           children: [
             Icon(
               Icons.thumb_up_rounded,
-              size: 40,
+              size: 90,
               color: theme.primaryColor,
             ),
             const SizedBox(height: 20),
-            Text('Image encryption was successful'),
+            Flexible(
+              child: Text(
+                'Image encryption was successful '
+                'Check your gallery for your image',
+                textAlign: TextAlign.center,
+              ),
+            ),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pushAndRemoveUntil(

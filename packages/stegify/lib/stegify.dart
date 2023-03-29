@@ -1,10 +1,12 @@
 library stegify;
 
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart';
 import 'package:image_size_getter/file_input.dart';
 import 'package:image_size_getter/image_size_getter.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:encrypt/encrypt.dart' as crypto;
 
 class Stegify {
   // Encode the image file
@@ -16,18 +18,18 @@ class Stegify {
   }) async {
     final size = ImageSizeGetter.getSize(FileInput(imageFile));
     final path = await getTemporaryDirectory();
-
+    // print({"Image file": imageFile.path});
     final encodedImage = await _encodeToPng(imageFile);
-
+    final encryptedMessage = encrypt(msg: message, token: encryptionKey!);
     final image = Image.fromBytes(
         size.width, size.height, await encodedImage!.getBytes(),
-        textData: {Util.SECRET_KEY: message});
+        textData: {encryptionKey: encryptedMessage});
     final newImage = encodePng(image);
     final file = File(
       normalizeOutputPath(
         inputFilePath: imageFile.path,
-        outputPath:
-            outputFilePath ?? path.path + DateTime.now().toIso8601String(),
+        outputPath: outputFilePath ??
+            "steg_" + path.path + DateTime.now().toIso8601String(),
       ),
     );
     return await file.writeAsBytes(newImage);
@@ -38,10 +40,60 @@ class Stegify {
     String? encryptionKey,
   }) async {
     final decodedImage = decodePng(await image.readAsBytes());
+    // print(decodedImage?.textData);
     if (decodedImage!.textData != null) {
-      final data = decodedImage.textData?['name'];
+      final data = decodedImage.textData?[encryptionKey];
+      if (data != null) {
+        final decryptedMessage = decrypt(msg: data, token: encryptionKey!);
+        return decryptedMessage;
+      }
       return data;
     }
+  }
+
+  static String encrypt({required String msg, required String token}) {
+    crypto.Key key = crypto.Key.fromUtf8(padKey(token));
+    // print(padKey(token));
+    crypto.IV iv = crypto.IV.fromLength(16);
+    // print(iv.base64);
+    crypto.Encrypter encrypter =
+        crypto.Encrypter(crypto.AES(key, padding: null));
+    crypto.Encrypted encrypted = encrypter.encrypt(msg, iv: iv);
+    msg = encrypted.base64;
+    print("MESSAGE BASE64");
+    print(msg);
+    print(msg.length);
+    print(msg.trim().length);
+    print(encrypter.decrypt(crypto.Encrypted.fromBase64(msg), iv: iv));
+    return msg;
+  }
+
+  static String decrypt({
+    required String token,
+    required String msg,
+  }) {
+    crypto.Key key = crypto.Key.fromUtf8(padKey(token));
+    print(padKey(token));
+    crypto.IV iv = crypto.IV.fromLength(16);
+    print(iv.base64);
+    crypto.Encrypter encrypter =
+        crypto.Encrypter(crypto.AES(key, padding: null));
+    final decryptedMessage =
+        encrypter.decrypt(crypto.Encrypted.fromBase64(msg), iv: iv);
+    print(decryptedMessage);
+    return decryptedMessage;
+  }
+
+  static String padKey(String key) {
+    if (key.length > 32) {
+      throw FlutterError('cryption_key_length_greater_than_32');
+    }
+    String paddedKey = key;
+    int padCnt = 32 - key.length;
+    for (int i = 0; i < padCnt; ++i) {
+      paddedKey += '#';
+    }
+    return paddedKey;
   }
 
   static String normalizeOutputPath({
@@ -59,7 +111,8 @@ class Stegify {
   static Future<Image?> _encodeToPng(File image) async {
     try {
       final extension = Util.getExtension(image.path);
-
+      print(extension);
+      print(await image.readAsBytes());
       switch (extension) {
         case "png":
           return decodePng(await image.readAsBytes());

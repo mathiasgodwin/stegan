@@ -21,6 +21,9 @@ dependencies:
   stegify:
     path: packages/stegify
   image_size_getter: ^2.1.2
+  local_auth_api:
+    path: packages/local_auth_api
+  local_auth: ^2.1.6
 dev_dependencies:
   flutter_test:
     sdk: flutter

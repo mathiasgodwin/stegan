@@ -1,5 +1,8 @@
 # stegan
 
+# Note:
+#### This was a school project for a friend. 
+
 A new Flutter project.
 
 ## Getting Started
