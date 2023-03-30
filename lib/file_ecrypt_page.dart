@@ -120,7 +120,7 @@ class _EncryptButtonState extends State<_EncryptButton> {
               if (status.isDenied) {
                 // request permission
                 await Permission.storage.request();
-                return;
+            
               }
 
               // Save image

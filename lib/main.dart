@@ -8,6 +8,7 @@ import 'package:folder_file_saver/folder_file_saver.dart';
 import 'package:gallery_saver/gallery_saver.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:stegan/file_ecrypt_page.dart';
 import 'package:stegan/image_viewer.dart';
 import 'package:stegan/message_decrypt_page.dart';
@@ -47,6 +48,23 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   final _textEditController = TextEditingController();
   File? imageFile;
+
+  @override
+  void initState() {
+    super.initState();
+    checkPermission();
+  }
+
+  checkPermission() async {
+    // get status permission
+    final status = await Permission.storage.status;
+
+    // check status permission
+    if (status.isDenied) {
+      // request permission
+      await Permission.storage.request();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -144,7 +162,6 @@ class _EncryptButton extends StatelessWidget {
               child: Column(
                 children: <Widget>[
                   ElevatedButton(
-                  
                     onPressed: () async {
                       FilePickerResult? result =
                           await FilePicker.platform.pickFiles();
@@ -198,7 +215,7 @@ class _DecryptButton extends StatelessWidget {
 
         final filePath = result.files.single.path;
         final file = File(filePath!);
-    
+
         showADialog(context, file);
       },
       child: Text("Decrypt"),

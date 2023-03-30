@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:folder_file_saver/folder_file_saver.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import 'package:stegan/encryption_success_page.dart';
 import 'package:stegan/image_viewer.dart';
@@ -152,6 +153,15 @@ class MessageInputPage extends StatelessWidget {
       encryptionKey: _secretKeyController.text,
     );
     if (file == null) return;
+    // get status permission
+    final status = await Permission.storage.status;
+
+    // check status permission
+    if (status.isDenied) {
+      // request permission
+      await Permission.storage.request();
+    }
+
     await FolderFileSaver.saveImage(
       pathImage: file.path,
     );
