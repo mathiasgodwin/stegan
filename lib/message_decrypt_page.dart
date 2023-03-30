@@ -3,25 +3,35 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-// import 'package:flutter_steganography/decoder.dart';
-// import 'package:flutter_steganography/requests/requests.dart';
+import 'package:folder_file_saver/folder_file_saver.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:stegan/file_decrypt_success_page.dart';
+import 'package:stegan/image_viewer.dart';
 import 'package:stegify/stegify.dart';
+import 'package:image/image.dart' as im;
+
+enum DecryptType { text, file }
 
 /// TODO: Finish the docs
 /// DecryptMessagePage to...
 class DecryptMessagePage extends StatelessWidget {
   /// Static named route for page
   static const String route = 'MessageInput';
-  DecryptMessagePage({required this.image});
-  final XFile image;
+  DecryptMessagePage({
+    required this.image,
+    required this.type,
+  });
+  final File image;
+  final DecryptType type;
 
   /// Static method to return the widget as a PageRoute
-  static Route go({required XFile imageFile}) => MaterialPageRoute<void>(
-      builder: (_) => DecryptMessagePage(
-            image: imageFile,
-          ));
+  static Route go({required File imageFile, required DecryptType type}) =>
+      MaterialPageRoute<void>(
+          builder: (_) => DecryptMessagePage(
+                image: imageFile,
+                type: type,
+              ));
 
   final _secretKeyController = TextEditingController();
   final _secretFormKey = GlobalKey<FormState>();
@@ -31,18 +41,18 @@ class DecryptMessagePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(),
       body: SingleChildScrollView(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           child: Form(
             key: _secretFormKey,
             child: Column(
               children: [
-                _ImageWidget(
+                ImageWidget(
                   image: image,
                 ),
                 const SizedBox(height: 20),
                 Row(
                   children: [
-                    Text('Enter secret key'),
+                    const Text('Enter secret key'),
                   ],
                 ),
                 TextFormField(
@@ -61,8 +71,23 @@ class DecryptMessagePage extends StatelessWidget {
                           if (_secretFormKey.currentState!.validate()) {
                             //decode with same encryption key used to encode
                             //to retrieve encrypted message
+                            String? embeddedMessage;
+                            if (type == DecryptType.text) {
+                              embeddedMessage = await usingStegify();
+                            } else {
+                              final a = im.decodePng(await image.readAsBytes());
 
-                            final embeddedMessage = await usingStegify();
+                              final file = await Stegify.decodeFile(
+                                  image: File(image.path),
+                                  encryptionKey: _secretKeyController.text);
+
+                              if (file == null) return;
+                              await FolderFileSaver.saveFileToFolderExt(
+                                  file.path);
+                              Navigator.of(context)
+                                  .push(FileDecryptionSuccessPage.go());
+                              return;
+                            }
 
                             if (embeddedMessage == null) {
                               ScaffoldMessenger.of(context)
@@ -74,24 +99,23 @@ class DecryptMessagePage extends StatelessWidget {
                               return;
                             }
 
-                            showDialog(
-                                context: context,
-                                builder: (context) {
-                                  return AlertDialog(
-                                    title: Text('You secret message'),
-                                    content: SingleChildScrollView(
-                                      physics: ScrollPhysics(),
-                                      child: Container(
-                                        child: Text(embeddedMessage),
+                            if (type == DecryptType.text) {
+                              showDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return AlertDialog(
+                                      title: const Text('You secret message'),
+                                      content: SingleChildScrollView(
+                                        physics: const ScrollPhysics(),
+                                        child: Container(
+                                          child: Text(embeddedMessage ?? ''),
+                                        ),
                                       ),
-                                    ),
-                                  );
-                                });
-                          }
-                        } catch (e, s) {
-                          print(e);
-                          print(s);
-                        }
+                                    );
+                                  });
+                            }
+                          } else {}
+                        } catch (e, s) {}
                       },
                       child: const Text('Decrypt'));
                 })
@@ -102,28 +126,11 @@ class DecryptMessagePage extends StatelessWidget {
   }
 
   Future<String?> usingStegify() async {
-    final ImageFile = File(image.path);
+    final imageFile = File(image.path);
     final message = await Stegify.decode(
-      image: ImageFile,
+      image: imageFile,
       encryptionKey: _secretKeyController.text,
     );
     return message;
-  }
-
-}
-
-class _ImageWidget extends StatelessWidget {
-  const _ImageWidget({required this.image});
-  final XFile image;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Image.file(
-        File(image.path),
-        height: 300,
-      ),
-    );
   }
 }

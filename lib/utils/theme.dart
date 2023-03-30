@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 
 final lightTheme = ThemeData(
-        colorScheme: flexSchemeLight,
-        useMaterial3: true,
-        inputDecorationTheme: InputDecorationTheme())
-    .copyWith();
+  colorScheme: flexSchemeLight,
+  useMaterial3: true,
+  inputDecorationTheme: const InputDecorationTheme(
+    border: OutlineInputBorder(),
+  ),
+).copyWith();
 final darkTheme = ThemeData(
   colorScheme: flexSchemeDark,
+  inputDecorationTheme: const InputDecorationTheme(
+    border: OutlineInputBorder(),
+  ),
   useMaterial3: true,
 );
 

@@ -9,7 +9,7 @@ class FingerprintPage extends StatelessWidget {
     final theme = Theme.of(context);
     return Scaffold(
       body: Padding(
-        padding: EdgeInsets.all(32),
+        padding: const EdgeInsets.all(32),
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -19,7 +19,7 @@ class FingerprintPage extends StatelessWidget {
                 color: theme.primaryColor,
                 size: 80,
               ),
-              SizedBox(height: 24),
+              const SizedBox(height: 24),
               buildAuthenticate(context),
             ],
           ),
@@ -40,7 +40,7 @@ class FingerprintPage extends StatelessWidget {
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
-              title: Text('Availability'),
+              title: const Text('Availability'),
               content: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -55,14 +55,14 @@ class FingerprintPage extends StatelessWidget {
       );
 
   Widget buildText(String text, bool checked) => Container(
-        margin: EdgeInsets.symmetric(vertical: 8),
+        margin: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
           children: [
             checked
-                ? Icon(Icons.check, color: Colors.green, size: 24)
-                : Icon(Icons.close, color: Colors.red, size: 24),
+                ? const Icon(Icons.check, color: Colors.green, size: 24)
+                : const Icon(Icons.close, color: Colors.red, size: 24),
             const SizedBox(width: 12),
-            Text(text, style: TextStyle(fontSize: 24)),
+            Text(text, style: const TextStyle(fontSize: 24)),
           ],
         ),
       );
@@ -88,12 +88,12 @@ class FingerprintPage extends StatelessWidget {
   }) =>
       ElevatedButton.icon(
         style: ElevatedButton.styleFrom(
-          minimumSize: Size.fromHeight(50),
+          minimumSize: const Size.fromHeight(50),
         ),
         icon: Icon(icon, size: 26),
         label: Text(
           text,
-          style: TextStyle(fontSize: 20),
+          style: const TextStyle(fontSize: 20),
         ),
         onPressed: onClicked,
       );

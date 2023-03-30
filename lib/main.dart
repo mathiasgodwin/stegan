@@ -2,17 +2,18 @@
 
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:folder_file_saver/folder_file_saver.dart';
 import 'package:gallery_saver/gallery_saver.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
-import 'package:image_size_getter/file_input.dart';
-import 'package:image_size_getter/image_size_getter.dart' as sz;
-import 'package:path_provider/path_provider.dart';
-import 'package:stegan/decrypt_message_page.dart';
+import 'package:stegan/file_ecrypt_page.dart';
+import 'package:stegan/image_viewer.dart';
+import 'package:stegan/message_decrypt_page.dart';
 import 'package:stegan/encryption_success_page.dart';
 import 'package:stegan/fingerprint_page.dart';
-import 'package:stegan/message_input_page.dart';
+import 'package:stegan/message_encrypt_page.dart';
 import 'package:stegan/utils/theme.dart';
 import 'package:stegify/stegify.dart';
 
@@ -64,7 +65,7 @@ class _HomeState extends State<Home> {
                 ),
                 Flexible(
                   child: Text(
-                    'Matric',
+                    'Matric Number',
                     style: theme.textTheme.bodySmall,
                   ),
                 ),
@@ -89,125 +90,6 @@ class _HomeState extends State<Home> {
   }
 }
 
-class _GetImageButton extends StatelessWidget {
-  _GetImageButton({Key? key, required this.onValue}) : super(key: key);
-
-  final ValueChanged<XFile?> onValue;
-  @override
-  Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: () async {
-        final imageFile =
-            await ImagePicker().pickImage(source: ImageSource.gallery);
-        onValue(imageFile);
-      },
-      child: Text('Get Image'),
-    );
-  }
-}
-
-class _SaveImageButton extends StatelessWidget {
-  _SaveImageButton({Key? key, required this.imageFile, required this.message})
-      : super(key: key);
-  final File? imageFile;
-  final String message;
-  @override
-  Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: imageFile == null
-          ? null
-          : () async {
-              final size = sz.ImageSizeGetter.getSize(FileInput(imageFile!));
-              final path = await getTemporaryDirectory();
-              final enImage = await encodeToPng(imageFile!);
-              final image = img.Image.fromBytes(
-                  size.width, size.height, enImage!.getBytes(),
-                  textData: {Util.SECRET_KEY: message});
-              final newImagePath =
-                  await File(path.path + DateTime.now().toIso8601String())
-                      .create();
-              final newImage = img.encodePng(image);
-              // final latestImage = await newImagePath.writeAsBytes(newImage);
-              // print(latestImage.path);
-              final file = File(
-                normalizeOutputPath(
-                  inputFilePath: imageFile!.path,
-                  outputPath: path.path + DateTime.now().toIso8601String(),
-                ),
-              );
-              file.writeAsBytes(newImage);
-              GallerySaver.saveImage(file.path);
-            },
-      child: const Text('Encrypt'),
-    );
-  }
-}
-
-Future<img.Image?> encodeToPng(File image) async {
-  try {
-    final extension = image.path
-        .split(Platform.pathSeparator)
-        .last
-        .split(".")
-        .last
-        .toLowerCase();
-
-    switch (extension) {
-      case "png":
-        return img.decodePng(await image.readAsBytes());
-      case "jpg":
-      case "jpeg":
-        final jpgImage = img.decodeJpg(await image.readAsBytes());
-        final size = sz.ImageSizeGetter.getSize(FileInput(image));
-
-        final imgFile = img.Image.fromBytes(
-          size.width,
-          size.height,
-          jpgImage!.getBytes(),
-        );
-
-        final pngBytes = img.encodePng(imgFile);
-
-        return img.decodePng(pngBytes);
-    }
-  } catch (e, trace) {
-    throw Exception(
-      "${image.path} is not a supported file type" + trace.toString(),
-    );
-  }
-}
-
-class _DecodeMessageButton extends StatelessWidget {
-  _DecodeMessageButton({
-    Key? key,
-  }) : super(key: key);
-  @override
-  Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: () async {
-        final image =
-            await ImagePicker().pickImage(source: ImageSource.gallery);
-
-        if (image == null) return;
-        Navigator.of(context).push(DecryptMessagePage.go(imageFile: image));
-      },
-      child: Text('Decrypt'),
-    );
-  }
-}
-
-String normalizeOutputPath({
-  required String inputFilePath,
-  String? outputPath,
-}) {
-  try {
-    if (Util.getExtension(outputPath!) == "png") {
-      return outputPath;
-    }
-  } catch (e) {}
-  return Util.generatePath(inputFilePath);
-}
-
 class _EncryptDecryptButton extends StatelessWidget {
   const _EncryptDecryptButton({Key? key}) : super(key: key);
 
@@ -215,7 +97,7 @@ class _EncryptDecryptButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [_EncryptButton(), _DecodeMessageButton()],
+      children: [_EncryptButton(), _DecryptButton()],
     );
   }
 }
@@ -235,14 +117,12 @@ class _EncryptButton extends StatelessWidget {
                   children: [
                     _ImageFromCameraButton(onFile: (value) {
                       if (value == null) return;
-                      Navigator.of(context)
-                          .push(MessageInputPage.go(imageFile: value));
+                      showADialog(context, value);
                     }),
                     _ImageFromGalleryButton(
                       onFile: (value) {
                         if (value == null) return;
-                        Navigator.of(context)
-                            .push(MessageInputPage.go(imageFile: value));
+                        showADialog(context, value);
                       },
                     )
                   ],
@@ -253,6 +133,56 @@ class _EncryptButton extends StatelessWidget {
       child: Text("Encrypt"),
     );
   }
+
+  showADialog(BuildContext context, File? image) {
+    showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            content: SingleChildScrollView(
+              physics: ScrollPhysics(),
+              child: Column(
+                children: <Widget>[
+                  ElevatedButton(
+                  
+                    onPressed: () async {
+                      FilePickerResult? result =
+                          await FilePicker.platform.pickFiles();
+
+                      if (result != null) {
+                        Navigator.of(context).push(FileEmbedPage.go(
+                          imageFile: image!,
+                          file: File(result.files.single.path!),
+                        ));
+                      } else {
+                        // User canceled the picker
+                      }
+                    },
+                    child: Row(
+                      children: [
+                        Icon(Icons.file_upload),
+                        Text('Embed File'),
+                      ],
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context)
+                          .push(MessageInputPage.go(imageFile: image!));
+                    },
+                    child: Row(
+                      children: [
+                        Icon(Icons.text_snippet_sharp),
+                        Text('Embed Text'),
+                      ],
+                    ),
+                  )
+                ],
+              ),
+            ),
+          );
+        });
+  }
 }
 
 class _DecryptButton extends StatelessWidget {
@@ -262,19 +192,65 @@ class _DecryptButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return ElevatedButton(
       onPressed: () async {
-        final file = await ImagePicker().pickImage(
-            source: ImageSource.gallery, maxHeight: 400, maxWidth: 480);
-        print(file);
-        if (file == null) return;
-        Navigator.of(context).push(DecryptMessagePage.go(imageFile: file));
+        final result = await FilePicker.platform
+            .pickFiles(type: FileType.image, allowCompression: false);
+        if (result == null) return;
+
+        final filePath = result.files.single.path;
+        final file = File(filePath!);
+    
+        showADialog(context, file);
       },
       child: Text("Decrypt"),
     );
   }
+
+  showADialog(BuildContext context, File? image) {
+    final theme = Theme.of(context);
+    showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            content: SingleChildScrollView(
+              physics: ScrollPhysics(),
+              child: Column(
+                children: <Widget>[
+                  ElevatedButton(
+                    onPressed: () async {
+                      Navigator.of(context).push(DecryptMessagePage.go(
+                        imageFile: image!,
+                        type: DecryptType.file,
+                      ));
+                    },
+                    child: Row(
+                      children: [
+                        Icon(Icons.file_upload),
+                        Text('Decrypt File'),
+                      ],
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).push(DecryptMessagePage.go(
+                          imageFile: image!, type: DecryptType.text));
+                    },
+                    child: Row(
+                      children: [
+                        Icon(Icons.text_snippet_sharp),
+                        Text('Decrypt Text'),
+                      ],
+                    ),
+                  )
+                ],
+              ),
+            ),
+          );
+        });
+  }
 }
 
 class _ImageFromGalleryButton extends StatelessWidget {
-  final ValueChanged<XFile?> onFile;
+  final ValueChanged<File?> onFile;
   const _ImageFromGalleryButton({required this.onFile});
 
   @override
@@ -282,9 +258,13 @@ class _ImageFromGalleryButton extends StatelessWidget {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(maximumSize: Size(160, 130)),
       onPressed: () async {
-        final file = await ImagePicker().pickImage(
-            source: ImageSource.gallery, maxHeight: 640, maxWidth: 480);
-        onFile(file);
+        final file = await FilePicker.platform.pickFiles(
+          type: FileType.image,
+          allowCompression: false,
+        );
+        onFile(File(file!.files.single.path!));
+
+        // onFile(File.fromRawPath(file!.files.single.bytes!));
       },
       child: Row(
         children: const [
@@ -297,7 +277,7 @@ class _ImageFromGalleryButton extends StatelessWidget {
 }
 
 class _ImageFromCameraButton extends StatelessWidget {
-  final ValueChanged<XFile?> onFile;
+  final ValueChanged<File?> onFile;
   const _ImageFromCameraButton({required this.onFile});
 
   @override
@@ -307,8 +287,9 @@ class _ImageFromCameraButton extends StatelessWidget {
       onPressed: () async {
         final file = await ImagePicker().pickImage(
             source: ImageSource.camera, maxHeight: 360, maxWidth: 480);
-
-        onFile(file);
+        if (file == null) return;
+        final newFile = File(file.path);
+        onFile(newFile);
       },
       child: Row(
         children: const [
@@ -317,193 +298,5 @@ class _ImageFromCameraButton extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-class MessageInputPage extends StatelessWidget {
-  /// Static named route for page
-  static const String route = 'MessageInput';
-  MessageInputPage({required this.image});
-  final XFile image;
-
-  /// Static method to return the widget as a PageRoute
-  static Route go({required XFile imageFile}) => MaterialPageRoute<void>(
-      builder: (_) => MessageInputPage(
-            image: imageFile,
-          ));
-
-  final _messageController = TextEditingController();
-  final _secretKeyController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
-  final _secretFormKey = GlobalKey<FormState>();
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(),
-      body: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              children: [
-                _ImageWidget(
-                  image: image,
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [Text('Enter message')],
-                ),
-                SizedBox(
-                  height: 120,
-                  child: TextFormField(
-                    controller: _messageController,
-                    expands: true,
-                    maxLines: null,
-                    validator: (value) {
-                      if (value!.isEmpty) {
-                        return 'Enter some message to continue';
-                      }
-
-                      return null;
-                    },
-                  ),
-                ),
-                Builder(builder: (context) {
-                  return ElevatedButton(
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        showDialog(
-                            useRootNavigator: false,
-                            context: context,
-                            builder: (context) {
-                              return Container(
-                                color: Colors.transparent,
-                                child: Material(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Form(
-                                        key: _secretFormKey,
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              'Enter Secret Key',
-                                              style: theme.textTheme.headline5,
-                                            ),
-                                            const SizedBox(height: 10),
-                                            Row(
-                                              children: [
-                                                Text("Enter secret key")
-                                              ],
-                                            ),
-                                            TextFormField(
-                                              controller: _secretKeyController,
-                                              validator: (value) {
-                                                if (value!.isEmpty) {
-                                                  return 'Secret key cannot be empty';
-                                                }
-                                                return null;
-                                              },
-                                            ),
-                                            const SizedBox(height: 10),
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                ElevatedButton(
-                                                    onPressed: () {
-                                                      Navigator.of(context)
-                                                          .pop();
-                                                    },
-                                                    child: const Text('Close')),
-                                                ElevatedButton(
-                                                  onPressed: () async {
-                                                    //
-                                                    await usingStegify();
-
-                                                    Navigator.of(context)
-                                                        .pushAndRemoveUntil(
-                                                            EncryptionSuccessPage
-                                                                .go(),
-                                                            (route) => false);
-                                                  },
-                                                  child: const Text('Save'),
-                                                )
-                                              ],
-                                            )
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            });
-                      }
-                    },
-                    child: const Text('Encrypt'),
-                  );
-                }),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> usingStegify() async {
-    final imageFile = File(image.path);
-    print(imageFile.path);
-    print(_secretKeyController.text);
-    final file = await Stegify.encode(
-      imageFile: imageFile,
-      message: _messageController.text,
-      encryptionKey: _secretKeyController.text,
-    );
-    await GallerySaver.saveImage(file!.path, albumName: 'Encrypted');
-  }
-}
-
-class _ImageWidget extends StatelessWidget {
-  const _ImageWidget({required this.image});
-  final XFile image;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 300,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.file(
-          File(
-            image.path,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-String getFileExtension(String fileName) {
-  return "." + fileName.split('.').last;
-}
-
-extension FileUtils on File {
-  get size {
-    int sizeInBytes = this.lengthSync();
-    double sizeInMb = sizeInBytes / (1024 * 1024);
-    return sizeInMb;
   }
 }
